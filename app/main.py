@@ -68,8 +68,6 @@ def start():
     print(json.dumps(data, indent=4))
 
     color = "#00FF00"
-    headType: "beluga"
-    tailType: "pixel"
 
     return start_response(color)
 
