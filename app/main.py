@@ -1,5 +1,3 @@
-# from __future__ import print_function
-
 import json
 import os
 import random
@@ -68,6 +66,8 @@ def start():
     print(json.dumps(data, indent=4))
 
     color = "#00FF00"
+    headType: "beluga"
+    tailType: "pixel"
 
     return start_response(color)
 
@@ -135,8 +135,6 @@ def move():
     """
     print(json.dumps(data, indent=4))
 
-    flood_fill(data)
-
     directions = ['up', 'down', 'left', 'right']
     #direction = random.choice(directions)
 
@@ -157,46 +155,6 @@ def end():
     print(json.dumps(data, indent=4))
 
     return end_response()
-
-# returns 2D matrix of board
-# 0 indicates empty space
-# 1 indicates our snake body
-# 2 indicates food
-# 3 indicates enemy snake body
-def get_map_of_board(data):
-    w = data["board"]["width"]
-    h = data["board"]["height"]
-    current_arena = [[0 for x in range(w)] for y in range(h)]
-    enemy_snakes = [data["board"]["snakes"]] 
-
-    # find own body
-    me = data["you"]["body"]
-    for pos in me:
-        current_arena[pos["y"]][pos["x"]] = 1
-
-    # find food
-    food = data["board"]["food"]
-    for i in food:
-        current_arena[i["y"]][i["x"]] = 2
-
-    # find enemy snakes
-    for snake in enemy_snakes:
-        body = snake[0]["body"]
-        for pos in body:
-            current_arena[pos["y"]][pos["x"]] = 3
-
-    print_board(w,h,current_arena)
-    return current_arena
-
-def print_board(w,h,current_arena):
-    for y in range(h):
-        for x in range(w):
-            print(current_arena[x][y], end=' ')
-        print('\n')    
-        
-def flood_fill(data):
-    get_map_of_board(data)
-     
 
 # Expose WSGI app (so gunicorn can find it)
 application = bottle.default_app()
