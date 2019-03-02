@@ -79,20 +79,6 @@ def move():
         'y': data['you']['body'][0]['y']
     }
 
-    # walls = {
-    #     'up': 0,
-    #     'right': data['board']['width']-1,
-    #     'down': data['board']['height']-1,
-    #     'left': 0
-    # }
-
-    # wallFlag = {
-    #     'up': head_pos['y'] <= walls['up'],
-    #     'right': head_pos['x'] >= walls['right'],
-    #     'down': head_pos['y'] >= walls['down'],
-    #     'left': head_pos['x'] <= walls['left']
-    # }
-
     obstacleFlag = {
         'up': checkForObstacle(data, head_pos['x'], head_pos['y'] - 1),
         'right': checkForObstacle(data, head_pos['x'] + 1, head_pos['y']),
@@ -100,23 +86,6 @@ def move():
         'left': checkForObstacle(data, head_pos['x'] - 1, head_pos['y'])
     }
     direction = 'right'
-
-    # if all(value == False for value in wallFlag.values()):
-    #     direction = "right"
-    #     print("NOT NEAR ANY WALLS")
-
-    # if wallFlag['up'] or wallFlag['down']:
-    #     if wallFlag['right'] and not bodyFlag['left']:
-    #         direction = 'left'
-    #     if wallFlag['left'] and not bodyFlag['right']:
-    #         direction = 'right'
-
-    # elif wallFlag['right'] or wallFlag['left']:
-    #     direction = "up"
-    #     if wallFlag['up'] and not bodyFlag['down']:
-    #         direction = 'down'
-    #     if wallFlag['down']and not bodyFlag['up']:
-    #         direction = 'up'
 
     if not obstacleFlag['up']:
         direction = 'up'
@@ -127,17 +96,9 @@ def move():
     if not obstacleFlag['down']:
         direction = 'down'
 
-    """
-    TODO: Using the data from the endpoint request object, your
-            snake AI must choose a direction to move in.
-    """
     print(json.dumps(data, indent=4))
 
     directions = ['up', 'down', 'left', 'right']
-    #direction = random.choice(directions)
-
-    # print("WALL FLAG = " + str(wallFlag))
-    # print("DIRECTION = " + direction)
 
     return move_response(direction)
 
