@@ -1,9 +1,9 @@
-# from __future__ import print_function
-
 import json
 import os
 import random
 import bottle
+
+
 
 from api import ping_response, start_response, move_response, end_response
 
@@ -25,7 +25,6 @@ def checkForObstacle(data, x, y):
     if walls["up"] == y or walls["down"] == y or walls["left"] == x or walls["right"] == x:
         print("wall found at ", x, y)
         return True
-
     return False
 
 @bottle.route('/')
@@ -49,7 +48,7 @@ def static(path):
 def ping():
     """
     A keep-alive endpoint used to prevent cloud application platforms,
-    such as Heroku,  from sleeping the application instance.
+    such as Heroku, from sleeping the application instance.
     """
     return ping_response()
 
@@ -62,14 +61,9 @@ def start():
             initialize your snake state here using the
             request's data if necessary.
     """
+    print(json.dumps(data))
 
-    food_initial = data["board"]["food"]
-
-    print(json.dumps(data, indent=4))
-
-    color = "#00FF00"
-    headType: "beluga"
-    tailType: "pixel"
+    color="#00FF00"
 
     return start_response(color)
 
@@ -105,23 +99,6 @@ def move():
     }
     direction = 'right'
 
-    # if all(value == False for value in wallFlag.values()):
-    #     direction = "right"
-    #     print("NOT NEAR ANY WALLS")
-
-    # if wallFlag['up'] or wallFlag['down']:
-    #     if wallFlag['right'] and not bodyFlag['left']:
-    #         direction = 'left'
-    #     if wallFlag['left'] and not bodyFlag['right']:
-    #         direction = 'right'
-
-    # elif wallFlag['right'] or wallFlag['left']:
-    #     direction = "up"
-    #     if wallFlag['up'] and not bodyFlag['down']:
-    #         direction = 'down'
-    #     if wallFlag['down']and not bodyFlag['up']:
-    #         direction = 'up'
-
     if not obstacleFlag['up']:
         direction = 'up'
     if not obstacleFlag['right']:
@@ -137,7 +114,12 @@ def move():
     """
     print(json.dumps(data, indent=4))
 
-    flood_fill(data)
+    #flood_fill(data)
+
+    if (data["you"]["health"] < 20):
+        my_head = data["you"]["body"]
+        destination = find_food(my_head,data)
+        direction = issue_direction(my_head, destination, data)
 
     directions = ['up', 'down', 'left', 'right']
     #direction = random.choice(directions)
@@ -156,7 +138,7 @@ def end():
     TODO: If your snake AI was stateful,
         clean up any stateful objects here.
     """
-    print(json.dumps(data, indent=4))
+    print(json.dumps(data))
 
     return end_response()
 
@@ -191,11 +173,55 @@ def get_map_of_board(data):
     return current_arena
 
 def print_board(w,h,current_arena):
+    """
     for y in range(h):
         for x in range(w):
-            print(current_arena[x][y], end=' ')
-        print('\n')    
-        
+            #print(current_arena[x][y], end=' ')
+        print('\n')
+    """        
+    return
+
+def find_food(my_head, data):
+    head_x = my_head["x"]
+    head_y = my_head["y"]
+
+    food_distances = []
+
+    food_items = data["board"]["food"]
+    for f in food_items:
+        f_x = food["x"]
+        f_y = food["y"]
+        food_distances.append(distance.cityblock([head_x, head_y],[f_x, f_y]))
+
+    for i in food_distances:
+        if i == min(food_distances):
+            target_food_index = i
+
+    target_food = data["board"]["food"][target_food_index]
+    print("target_food")
+    print(target_food)
+    return (target_food["x"], target_food["y"])
+
+def issue_direction(current_pos, destination, data):
+    board = get_map_of_board(data)
+
+    # want to move right
+    if (current_pos.get("x") < destination.get("x")):
+        if (board[current_pos.get("y"),current_pos.get("x")+1] == 0) or (board[current_pos.get("y"),current_pos.get("x")+1] == 3):
+            return 'right'
+    # want to move left
+    if (current_pos.get("x") > destination.get("x")):
+        if (board[current_pos.get("y"), current_post.get("x")-1] == 0) or (board[current_pos.get("y"), current_post.get("x")-1] == 3):
+            return 'left'
+    # want to move up
+    if (current_pos.get("y") > destination.get("y")):
+        if (board[current_pos.get("y")-1, current_pos.get("x")] == 0) or (board[current_pos.get("y")-1, current_pos.get("x")] == 3):
+            return 'up'
+    # want to move down
+    if (current_pos.get("y") < destination.get("y")):
+        if (board[current_pos.get("y")+1, current_pos.get("y")] == 0) or (board[current_pos.get("y")+1, current_pos.get("y")] == 3):
+            return 'down' 
+       
 def flood_fill(data):
     get_map_of_board(data)
      
@@ -207,6 +233,6 @@ if __name__ == '__main__':
     bottle.run(
         application,
         host=os.getenv('IP', '0.0.0.0'),
-        port=os.getenv('PORT', '8080'),
+        port=os.getenv('PORT', '18080'),
         debug=os.getenv('DEBUG', True)
     )
