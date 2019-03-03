@@ -189,8 +189,8 @@ def find_food(my_head, data):
 
     food_items = data["board"]["food"]
     for f in food_items:
-        f_x = food["x"]
-        f_y = food["y"]
+        f_x = f["x"]
+        f_y = f["y"]
         food_distances.append(distance.cityblock([head_x, head_y],[f_x, f_y]))
 
     for i in food_distances:
