@@ -193,6 +193,7 @@ def find_food(my_head, data):
         f_y = f["y"]
         food_distances.append(distance.cityblock([head_x, head_y],[f_x, f_y]))
 
+    target_food_index = 0
     for i in food_distances:
         if i == min(food_distances):
             target_food_index = i
