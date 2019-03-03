@@ -117,7 +117,7 @@ def move():
     #flood_fill(data)
 
     if (data["you"]["health"] < 20):
-        my_head = data["you"]["body"]
+        my_head = data["you"]["body"][0]
         destination = find_food(my_head,data)
         direction = issue_direction(my_head, destination, data)
 
