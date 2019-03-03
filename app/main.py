@@ -198,7 +198,10 @@ def find_food(my_head, data):
         if i == min(food_distances):
             target_food_index = i
 
-    target_food = data["board"]["food"][target_food_index]
+    if len(data["board"]["food"]) > 1:
+        target_food = data["board"]["food"][target_food_index]
+    else:
+        target_food = data["board"]["food"][0]
     print("target_food")
     print(target_food)
     return (target_food["x"], target_food["y"])
