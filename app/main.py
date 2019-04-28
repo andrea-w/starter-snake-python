@@ -5,27 +5,6 @@ import bottle
 
 from api import ping_response, start_response, move_response, end_response
 
-def checkForObstacle(data, x, y):
-
-    walls = {
-        'up': 0,
-        'right': data['board']['width']-1,
-        'down': data['board']['height']-1,
-        'left': 0
-    }
-
-    for snake in data['board']['snakes']:
-        for piece in snake['body']:
-            if piece['x'] == x and piece['y'] == y:
-                print("snake found at ", x, y)
-                return True
-
-    if walls["up"] == y or walls["down"] == y or walls["left"] == x or walls["right"] == x:
-        print("wall found at ", x, y)
-        return True
-
-    return False
-
 @bottle.route('/')
 def index():
     return '''
@@ -47,7 +26,7 @@ def static(path):
 def ping():
     """
     A keep-alive endpoint used to prevent cloud application platforms,
-    such as Heroku,  from sleeping the application instance.
+    such as Heroku, from sleeping the application instance.
     """
     return ping_response()
 
@@ -60,10 +39,7 @@ def start():
             initialize your snake state here using the
             request's data if necessary.
     """
-
-    food_initial = data["board"]["food"]
-
-    print(json.dumps(data, indent=4))
+    print(json.dumps(data))
 
     color = "#00FF00"
 
@@ -74,31 +50,14 @@ def start():
 def move():
     data = bottle.request.json
 
-    head_pos = {
-        'x': data['you']['body'][0]['x'], 
-        'y': data['you']['body'][0]['y']
-    }
-
-    obstacleFlag = {
-        'up': checkForObstacle(data, head_pos['x'], head_pos['y'] - 1),
-        'right': checkForObstacle(data, head_pos['x'] + 1, head_pos['y']),
-        'down': checkForObstacle(data, head_pos['x'], head_pos['y'] + 1),
-        'left': checkForObstacle(data, head_pos['x'] - 1, head_pos['y'])
-    }
-    direction = 'right'
-
-    if not obstacleFlag['up']:
-        direction = 'up'
-    if not obstacleFlag['right']:
-        direction = 'right'
-    if not obstacleFlag['left']:
-        direction = 'left'
-    if not obstacleFlag['down']:
-        direction = 'down'
-
-    print(json.dumps(data, indent=4))
+    """
+    TODO: Using the data from the endpoint request object, your
+            snake AI must choose a direction to move in.
+    """
+    print(json.dumps(data))
 
     directions = ['up', 'down', 'left', 'right']
+    direction = random.choice(directions)
 
     return move_response(direction)
 
@@ -111,7 +70,7 @@ def end():
     TODO: If your snake AI was stateful,
         clean up any stateful objects here.
     """
-    print(json.dumps(data, indent=4))
+    print(json.dumps(data))
 
     return end_response()
 
@@ -122,6 +81,6 @@ if __name__ == '__main__':
     bottle.run(
         application,
         host=os.getenv('IP', '0.0.0.0'),
-        port=os.getenv('PORT', '8080'),
+        port=os.getenv('PORT', '3011'),
         debug=os.getenv('DEBUG', True)
     )
