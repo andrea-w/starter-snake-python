@@ -3,6 +3,7 @@ import os
 import random
 import bottle
 import scipy
+import numpy
 
 from api import ping_response, start_response, move_response, end_response
 
@@ -62,6 +63,7 @@ def move():
     direction = 'right'
 
     head_pos = get_position_of_my_head(data)
+    """
     adj_points = get_all_4_points(head_pos)
     no_walls = check_for_walls(adj_points, data)
     avoid_me = check_own_body(no_walls, data)
@@ -75,8 +77,18 @@ def move():
     possible_directions = []
     for point in avoid_others:
         possible_directions.append(get_name_of_direction(point,head_pos))
+    """
 
-    return move_response(random.choice(possible_directions))
+    optimal_node = flood_fill(data)
+    next_to_food = check_if_next_to_food(get_all_4_points(head_pos) , data)
+    if (next_to_food != False):
+        optimal_node = next_to_food
+    if (data['you']['health'] < 30):
+        optimal_node = look_for_food(head_pos, data)
+        print("I'm hungry. Optimal node: " + str(optimal_node))
+    optimal_direction = get_string_direction(optimal_node, head_pos)
+
+    return move_response(optimal_direction)
 
 
 @bottle.post('/end')
@@ -176,6 +188,84 @@ def get_name_of_direction(dest, src):
     else:
         return 'down'
 
+def flood_fill(data):
+    h = data['board']['height']
+    w = data['board']['width']
+    board = numpy.zeros(h*w).reshape((h,w))
+
+    # populate the board
+    """
+    0 = empty node
+    -1 = food
+    2 = myself
+    3 = other snake
+    """
+    for f in data['board']['food']:
+        board[f.get("y")][f.get("x")] = -1
+    for snake in data['board']['snakes']:
+        for snake_body in snake['body']:
+            board[snake_body.get("y")][snake_body.get("x")] = 3
+    for my_body in data['you']['body']:
+        board[my_body.get("y")][my_body.get("x")] = 2
+
+    node = data['you']['body'][0] #head position
+    examined_nodes = [] # keep track of nodes that have already been flood filled
+    left, right, up, down = 0, 0, 0, 0
+    max_count = 0
+    optimal_node = None
+    if (node.get("x") - 1 >= 0):
+        left, examined_nodes = sub_flood_fill({"x": node.get("x") -1, "y": node.get("y")}, board, examined_nodes, left)
+        if (left > max_count):
+            max_count = left
+            optimal_node = {"x": node.get("x") -1, "y": node.get("y")}
+    if (node.get("x") + 1 < w):
+        right, examined_nodes = sub_flood_fill({"x": node.get("x") + 1, "y": node.get("y")}, board, examined_nodes, right)
+        if (right > max_count):
+            max_count = right
+            optimal_node = {"x": node.get("x") + 1, "y": node.get("y")}
+    if (node.get("y") - 1 >= 0):
+        up, examined_nodes = sub_flood_fill({"x": node.get("x"), "y": node.get("y") - 1}, board, examined_nodes, up)
+        if (up > max_count):
+            max_count = up
+            optimal_node = {"x": node.get("x"), "y": node.get("y") - 1}
+    if (node.get("y") + 1 < h):
+        down, examined_nodes = sub_flood_fill({"x": node.get("x"), "y": node.get("y") + 1}, board, examined_nodes, down)
+        if (down > max_count):
+            max_count = down
+            optimal_node = {"x": node.get("x"), "y": node.get("y") + 1}
+
+    return optimal_node
+
+
+def sub_flood_fill(node, board, examined_nodes, count):
+    if ( (board[node.get("y")][node.get("x")] < 1) and (node not in examined_nodes)):
+        count += 1
+        examined_nodes.append(node)
+        # left
+        if (node.get("x") - 1 >= 0):
+            count, examined_nodes = sub_flood_fill({"x": node.get("x") -1, "y": node.get("y")}, board, examined_nodes, count)
+        # right
+        if (node.get("x") + 1 < board.shape[1]):
+            count, examined_nodes = sub_flood_fill({"x": node.get("x") + 1, "y": node.get("y")}, board, examined_nodes, count)
+        # up
+        if (node.get("y") - 1 >= 0):
+            count, examined_nodes = sub_flood_fill({"x": node.get("x"), "y": node.get("y") - 1}, board, examined_nodes, count)
+        # down
+        if (node.get("y") + 1 < board.shape[0]):
+            count, examined_nodes = sub_flood_fill({"x": node.get("x"), "y": node.get("y") + 1}, board, examined_nodes, count)
+    #print("count: " + str(count) + ", examined_nodes: " + str(examined_nodes))
+    return count, examined_nodes
+
+def get_string_direction(dest, head_pos):
+    if (dest.get("x") < head_pos.get("x")):
+        return 'left'
+    elif (dest.get("x") > head_pos.get("x")):
+        return 'right'
+    elif (dest.get("y") < head_pos.get("y")):
+        return 'up'
+    else:
+        return 'down'
+
 
 # Expose WSGI app (so gunicorn can find it)
 application = bottle.default_app()
@@ -184,6 +274,6 @@ if __name__ == '__main__':
     bottle.run(
         application,
         host=os.getenv('IP', '0.0.0.0'),
-        port=os.getenv('PORT', '3200'),
+        port=os.getenv('PORT', '3270'),
         debug=os.getenv('DEBUG', True)
     )
