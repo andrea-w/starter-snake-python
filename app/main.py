@@ -2,7 +2,7 @@ import json
 import os
 import random
 import bottle
-import scipy
+from scipy.spatial import distance
 import numpy
 
 from api import ping_response, start_response, move_response, end_response
@@ -43,7 +43,9 @@ def start():
     """
     print(json.dumps(data))
 
-    color = "#00FF99"
+    color = "#736CCB"
+    headType = "beluga"
+    tailType = "hook"
 
     return start_response(color)
 
@@ -84,7 +86,14 @@ def move():
     if (next_to_food != False):
         optimal_node = next_to_food
     if (data['you']['health'] < 30):
-        optimal_node = look_for_food(head_pos, data)
+        food_loc = look_for_food(head_pos, data)
+        adj_points = get_all_4_points(food_loc)
+
+        for snake in data['board']['snakes']:
+            for point in adj_points:
+                if point in snake['body']:
+                    adj_points.remove(point)
+        optimal_node = adj_points[0]       
         print("I'm hungry. Optimal node: " + str(optimal_node))
     optimal_direction = get_string_direction(optimal_node, head_pos)
 
@@ -172,7 +181,7 @@ def look_for_food(head_pos, data):
     min_dist = 99
     nearest_food_loc = {}
     for food in data['board']['food']:
-        dist = scipy.spatial.distance.cityblock(food, head_pos)
+        dist = distance.cityblock([int(food.get("y")), int(food.get("x"))], [int(head_pos.get("y")), int(head_pos.get("x"))])
         if (dist < min_dist):
             min_dist = dist
             nearest_food_loc = food
@@ -274,6 +283,6 @@ if __name__ == '__main__':
     bottle.run(
         application,
         host=os.getenv('IP', '0.0.0.0'),
-        port=os.getenv('PORT', '3270'),
+        port=os.getenv('PORT', '3290'),
         debug=os.getenv('DEBUG', True)
     )
