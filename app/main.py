@@ -43,11 +43,7 @@ def start():
     """
     print(json.dumps(data))
 
-    color = "#736CCB"
-    headType = "beluga"
-    tailType = "hook"
-
-    return start_response(color)
+    return {'color': '#736CCB', 'headType': 'bendr', 'tailType': 'skinny'}
 
 
 @bottle.post('/move')
@@ -58,43 +54,23 @@ def move():
     TODO: Using the data from the endpoint request object, your
             snake AI must choose a direction to move in.
     """
-    print(json.dumps(data))
+    #print(json.dumps(data))
 
     directions = ['up', 'down', 'left', 'right']
-    #direction = random.choice(directions)
-    direction = 'right'
 
     head_pos = get_position_of_my_head(data)
-    """
-    adj_points = get_all_4_points(head_pos)
-    no_walls = check_for_walls(adj_points, data)
-    avoid_me = check_own_body(no_walls, data)
-    avoid_others = check_for_other_snakes(avoid_me, data)
-
-    next_to_food = check_if_next_to_food(avoid_others, data)
-    if (next_to_food != False):
-        del avoid_others[:]
-        avoid_others.append(next_to_food)
-
-    possible_directions = []
-    for point in avoid_others:
-        possible_directions.append(get_name_of_direction(point,head_pos))
-    """
-
-    optimal_node = flood_fill(data)
-    next_to_food = check_if_next_to_food(get_all_4_points(head_pos) , data)
-    if (next_to_food != False):
-        optimal_node = next_to_food
-    if (data['you']['health'] < 30):
-        food_loc = look_for_food(head_pos, data)
-        adj_points = get_all_4_points(food_loc)
-
-        for snake in data['board']['snakes']:
-            for point in adj_points:
-                if point in snake['body']:
-                    adj_points.remove(point)
-        optimal_node = adj_points[0]       
-        print("I'm hungry. Optimal node: " + str(optimal_node))
+    optimal_node = {}
+    if (check_for_head_on_collision(data) != None):
+        print("\n\n\n head on collision points:")
+        print(str(check_for_head_on_collision(data)))
+        optimal_node = random.choice(check_for_head_on_collision(data))
+    else:
+        next_to_food = check_if_next_to_food(get_all_4_points(head_pos) , data)
+        if (next_to_food != False):
+            optimal_node = next_to_food
+        else:
+            optimal_node = flood_fill(data)
+    print("optimal node: " + str(optimal_node))
     optimal_direction = get_string_direction(optimal_node, head_pos)
 
     return move_response(optimal_direction)
@@ -218,52 +194,71 @@ def flood_fill(data):
         board[my_body.get("y")][my_body.get("x")] = 2
 
     node = data['you']['body'][0] #head position
+    adj_nodes = {"left": {"x": node.get("x") -1, "y": node.get("y")},
+                "right": {"x": node.get("x") + 1, "y": node.get("y")},
+                "up": {"x": node.get("x"), "y": node.get("y") - 1},
+                "down": {"x": node.get("x"), "y": node.get("y") + 1}}
     examined_nodes = [] # keep track of nodes that have already been flood filled
-    left, right, up, down = 0, 0, 0, 0
-    max_count = 0
+    # space_counts is dictionary to count number of valid positions in particular direction
+    space_counts = {"left": 0, "right": 0, "up": 0, "down": 0}
+    # buffet_score is dictionary to count number of food items in particular direction
+    #buffet_score = {"left": 0, "right": 0, "up": 0, "down": 0}
     optimal_node = None
     if (node.get("x") - 1 >= 0):
-        left, examined_nodes = sub_flood_fill({"x": node.get("x") -1, "y": node.get("y")}, board, examined_nodes, left)
-        if (left > max_count):
-            max_count = left
-            optimal_node = {"x": node.get("x") -1, "y": node.get("y")}
+        left, buffet, examined_nodes = sub_flood_fill({"x": node.get("x") -1, "y": node.get("y")}, board, examined_nodes, 0, 0)
+        space_counts['left'] = left
+       # buffet_score['left'] = buffet
     if (node.get("x") + 1 < w):
-        right, examined_nodes = sub_flood_fill({"x": node.get("x") + 1, "y": node.get("y")}, board, examined_nodes, right)
-        if (right > max_count):
-            max_count = right
-            optimal_node = {"x": node.get("x") + 1, "y": node.get("y")}
+        right, buffet, examined_nodes = sub_flood_fill({"x": node.get("x") + 1, "y": node.get("y")}, board, examined_nodes, 0, 0)
+        space_counts['right'] = right
+        #buffet_score['right'] = buffet
     if (node.get("y") - 1 >= 0):
-        up, examined_nodes = sub_flood_fill({"x": node.get("x"), "y": node.get("y") - 1}, board, examined_nodes, up)
-        if (up > max_count):
-            max_count = up
-            optimal_node = {"x": node.get("x"), "y": node.get("y") - 1}
+        up, buffet, examined_nodes = sub_flood_fill({"x": node.get("x"), "y": node.get("y") - 1}, board, examined_nodes, 0, 0)
+        space_counts['up'] = up
+        #buffet_score['up'] = buffet
     if (node.get("y") + 1 < h):
-        down, examined_nodes = sub_flood_fill({"x": node.get("x"), "y": node.get("y") + 1}, board, examined_nodes, down)
-        if (down > max_count):
-            max_count = down
-            optimal_node = {"x": node.get("x"), "y": node.get("y") + 1}
+        down, buffet, examined_nodes = sub_flood_fill({"x": node.get("x"), "y": node.get("y") + 1}, board, examined_nodes, 0, 0)
+        space_counts['down'] = down
+        #buffet_score['down'] = buffet
+
+    """
+    # compute ratio of food:space
+    for k in space_counts.iterkeys():
+        if space_counts.get(k) > 0:
+            space_counts[k] = float(buffet_score.get(k) / space_counts.get(k))
+
+    # find highest ratio of food:space
+    best_dir = max(space_counts, key=lambda key: space_counts[key])
+    print("best direction: " + best_dir + ", " + str(space_counts.get(best_dir)))
+    optimal_node = adj_nodes.get(best_dir)
+    """
+    best_dir = max(space_counts, key=lambda key: space_counts[key])
+    print("best direction: " + best_dir)
+    optimal_node = adj_nodes.get(best_dir)
 
     return optimal_node
 
 
-def sub_flood_fill(node, board, examined_nodes, count):
+def sub_flood_fill(node, board, examined_nodes, count, buffet_score):
     if ( (board[node.get("y")][node.get("x")] < 1) and (node not in examined_nodes)):
         count += 1
         examined_nodes.append(node)
+        if (board[node.get("y")][node.get("x")] == -1):
+            buffet_score += 1
         # left
         if (node.get("x") - 1 >= 0):
-            count, examined_nodes = sub_flood_fill({"x": node.get("x") -1, "y": node.get("y")}, board, examined_nodes, count)
+            count, buffet_score, examined_nodes = sub_flood_fill({"x": node.get("x") -1, "y": node.get("y")}, board, examined_nodes, count, buffet_score)
         # right
         if (node.get("x") + 1 < board.shape[1]):
-            count, examined_nodes = sub_flood_fill({"x": node.get("x") + 1, "y": node.get("y")}, board, examined_nodes, count)
+            count, buffet_score, examined_nodes = sub_flood_fill({"x": node.get("x") + 1, "y": node.get("y")}, board, examined_nodes, count, buffet_score)
         # up
         if (node.get("y") - 1 >= 0):
-            count, examined_nodes = sub_flood_fill({"x": node.get("x"), "y": node.get("y") - 1}, board, examined_nodes, count)
+            count, buffet_score, examined_nodes = sub_flood_fill({"x": node.get("x"), "y": node.get("y") - 1}, board, examined_nodes, count, buffet_score)
         # down
         if (node.get("y") + 1 < board.shape[0]):
-            count, examined_nodes = sub_flood_fill({"x": node.get("x"), "y": node.get("y") + 1}, board, examined_nodes, count)
+            count, buffet_score, examined_nodes = sub_flood_fill({"x": node.get("x"), "y": node.get("y") + 1}, board, examined_nodes, count, buffet_score)
     #print("count: " + str(count) + ", examined_nodes: " + str(examined_nodes))
-    return count, examined_nodes
+    return count, buffet_score, examined_nodes
 
 def get_string_direction(dest, head_pos):
     if (dest.get("x") < head_pos.get("x")):
@@ -275,6 +270,89 @@ def get_string_direction(dest, head_pos):
     else:
         return 'down'
 
+# if head of another snake is 2 points away in any cityblock direction,
+# this function returns list of node(s) to go towards
+# if this snake is bigger than the enemy snake, it will attempt to collide 
+# with the smaller snake in order to kill it
+# if this snake is the same size or smaller than the enemy snake, it will
+# attempt to avoid a collision
+# functions returns None if snake is not in a head-on collision situation
+def check_for_head_on_collision(data):
+    head_pos = data['you']['body'][0]
+    head_pos_vector = [head_pos.get("y"), head_pos.get("x")]
+
+    for snake in data['board']['snakes']:
+        head_of_enemy_snake = snake['body'][0]
+        if head_of_enemy_snake == head_pos:
+            # it's not an enemy, it's me
+            continue
+        else:
+            head_of_enemy_vector = [head_of_enemy_snake.get("y"), head_of_enemy_snake.get("x")]
+            if ( distance.cityblock(head_pos_vector, head_of_enemy_vector) == 2 ):
+                # determine snake lengths
+                my_length = len(data['you']['body'])
+                enemy_length = len(snake['body'])
+                
+                # determine if straight-on or corner
+                if (head_pos.get("x") == head_of_enemy_snake.get("x")):
+                    # it's straight on vertically
+                    if (my_length > enemy_length):
+                        # attack
+                        return [{"x": head_pos.get("x"), "y": min(head_pos.get("y"), head_of_enemy_snake.get("y")) + 1}]
+                    else:
+                        # flee
+                        return find_escape_points(data, head_pos, head_of_enemy_snake)
+                elif (head_pos.get("y") == head_of_enemy_snake.get("y")):
+                    # it's straight on horizontally
+                    if (my_length > enemy_length):
+                        # attack
+                        return [{"y": head_pos.get("y"), "x": min(head_pos.get("x"), head_of_enemy_snake.get("x")) + 1}]
+                    else:
+                        # flee
+                        return find_escape_points(data, head_pos, head_of_enemy_snake)
+                else:
+                    # it's on a corner
+                    options = []
+                    if (my_length > enemy_length):
+                        # attack. There's two possible points the snake could go into
+                        options.append({"x": head_pos.get("x"), "y": head_of_enemy_snake.get("y")})
+                        options.append({"x": head_pos.get("y"), "y": head_of_enemy_snake.get("x")})
+                        return options
+                    else:
+                        # flee
+                        return find_escape_points(data, head_pos, head_of_enemy_snake)
+    return None
+
+def find_escape_points(data, head_pos, head_of_enemy_snake):
+    # if the potential HOC is straight horizontally
+    if (head_pos.get("y") == head_of_enemy_snake.get("y")):
+        left_pt = get_point_to_left(head_pos)
+        right_pt = get_point_to_right(head_pos)
+        options = [left_pt, right_pt]
+        #options = check_for_walls(options, data)
+        options = check_for_other_snakes(options, data)
+        options = check_own_body(options, data)
+        return options
+    # else if the potential HOC is straight vertically
+    elif (head_pos.get("x") == head_of_enemy_snake.get("x")):
+        up_pt = get_point_upward(head_pos)
+        down_pt = get_point_downward(head_pos)
+        options = [up_pt, down_pt]
+        #options = check_for_walls(options, data)
+        options = check_for_other_snakes(options, data)
+        options = check_own_body(options, data)
+        return options
+    # else the potential HOC is on a corner
+    else:
+        all_adj_points = get_all_4_points(head_pos)
+        adj_points_to_head = get_all_4_points(head_of_enemy_snake)
+        #options = check_for_walls(all_adj_points, data)
+        options = check_for_other_snakes(options, data)
+        options = check_own_body(options, data)
+        for pt in options:
+            if pt in adj_points_to_head:
+                options.remove(pt)
+        return options
 
 # Expose WSGI app (so gunicorn can find it)
 application = bottle.default_app()
@@ -283,6 +361,6 @@ if __name__ == '__main__':
     bottle.run(
         application,
         host=os.getenv('IP', '0.0.0.0'),
-        port=os.getenv('PORT', '3290'),
+        port=os.getenv('PORT', '3390'),
         debug=os.getenv('DEBUG', True)
     )
