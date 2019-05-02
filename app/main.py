@@ -65,13 +65,8 @@ def move():
         print(str(check_for_head_on_collision(data)))
         optimal_node = random.choice(check_for_head_on_collision(data))
     else:
-        next_to_food = check_if_next_to_food(get_all_4_points(head_pos) , data)
-        if (next_to_food != False):
-            optimal_node = next_to_food
-        else:
-            #optimal_node = flood_fill(data)
-            goal_node = look_for_food(head_pos, data)
-            optimal_node = find_next_step_in_route(head_pos, goal_node, data)
+        goal_node = look_for_food(head_pos, data)
+        optimal_node = find_next_step_in_route(head_pos, goal_node, data)
     print("optimal node: " + str(optimal_node))
     optimal_direction = get_string_direction(optimal_node, head_pos)
 
@@ -309,48 +304,28 @@ def check_for_head_on_collision(data):
                 # determine if straight-on or corner
                 if (head_pos.get("x") == head_of_enemy_snake.get("x")):
                     # it's straight on vertically
-                    if (my_length > enemy_length):
-                        # attack
-                        return [{"x": head_pos.get("x"), "y": min(head_pos.get("y"), head_of_enemy_snake.get("y")) + 1}]
-                    else:
-                        # flee
-                        return find_escape_points(data, head_pos, head_of_enemy_snake)
+                    return find_escape_points(data, head_pos, head_of_enemy_snake)
                 elif (head_pos.get("y") == head_of_enemy_snake.get("y")):
-                    # it's straight on horizontally
-                    if (my_length > enemy_length):
-                        # attack
-                        return [{"y": head_pos.get("y"), "x": min(head_pos.get("x"), head_of_enemy_snake.get("x")) + 1}]
-                    else:
-                        # flee
-                        return find_escape_points(data, head_pos, head_of_enemy_snake)
+                    return find_escape_points(data, head_pos, head_of_enemy_snake)
                 else:
-                    # it's on a corner
-                    options = []
-                    if (my_length > enemy_length):
-                        # attack. There's two possible points the snake could go into
-                        options.append({"x": head_pos.get("x"), "y": head_of_enemy_snake.get("y")})
-                        options.append({"x": head_pos.get("y"), "y": head_of_enemy_snake.get("x")})
-                        return options
-                    else:
-                        # flee
-                        return find_escape_points(data, head_pos, head_of_enemy_snake)
+                    return find_escape_points(data, head_pos, head_of_enemy_snake)
     return None
 
 def find_escape_points(data, head_pos, head_of_enemy_snake):
     # if the potential HOC is straight horizontally
     if (head_pos.get("y") == head_of_enemy_snake.get("y")):
-        left_pt = get_point_to_left(head_pos)
-        right_pt = get_point_to_right(head_pos)
-        options = [left_pt, right_pt]
+        up_pt = get_point_upward(head_pos)
+        down_pt = get_point_downward(head_pos)
+        options = [up_pt, down_pt]
         #options = check_for_walls(options, data)
         options = check_for_other_snakes(options, data)
         options = check_own_body(options, data)
         return options
     # else if the potential HOC is straight vertically
     elif (head_pos.get("x") == head_of_enemy_snake.get("x")):
-        up_pt = get_point_upward(head_pos)
-        down_pt = get_point_downward(head_pos)
-        options = [up_pt, down_pt]
+        left_pt = get_point_to_left(head_pos)
+        right_pt = get_point_to_right(head_pos)
+        options = [left_pt, right_pt]
         #options = check_for_walls(options, data)
         options = check_for_other_snakes(options, data)
         options = check_own_body(options, data)
@@ -374,6 +349,6 @@ if __name__ == '__main__':
     bottle.run(
         application,
         host=os.getenv('IP', '0.0.0.0'),
-        port=os.getenv('PORT', '3410'),
+        port=os.getenv('PORT', '3440'),
         debug=os.getenv('DEBUG', True)
     )
