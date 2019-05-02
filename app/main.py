@@ -69,7 +69,9 @@ def move():
         if (next_to_food != False):
             optimal_node = next_to_food
         else:
-            optimal_node = flood_fill(data)
+            #optimal_node = flood_fill(data)
+            goal_node = look_for_food(head_pos, data)
+            optimal_node = find_next_step_in_route(head_pos, goal_node, data)
     print("optimal node: " + str(optimal_node))
     optimal_direction = get_string_direction(optimal_node, head_pos)
 
@@ -162,6 +164,17 @@ def look_for_food(head_pos, data):
             min_dist = dist
             nearest_food_loc = food
     return nearest_food_loc
+
+def find_next_step_in_route(current_pos, dest_pos, data):
+    adj_points = get_all_4_points(current_pos)
+    options = check_for_walls(adj_points, data)
+    options = check_for_other_snakes(options, data)
+    options = check_own_body(options, data)
+    distances = []
+    for pt in options:
+        distances.append(distance.cityblock([int(pt.get("x")), int(pt.get("y"))], [int(dest_pos.get("x")), int(dest_pos.get("y"))]))
+    index_of_min = numpy.argmin(distances)
+    return options[index_of_min]
 
 def get_name_of_direction(dest, src):
     if (int(dest.get('x')) < int(src.get('x'))):
@@ -361,6 +374,6 @@ if __name__ == '__main__':
     bottle.run(
         application,
         host=os.getenv('IP', '0.0.0.0'),
-        port=os.getenv('PORT', '3390'),
+        port=os.getenv('PORT', '3410'),
         debug=os.getenv('DEBUG', True)
     )
