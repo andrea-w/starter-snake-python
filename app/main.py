@@ -65,8 +65,17 @@ def move():
         print(str(check_for_head_on_collision(data)))
         optimal_node = random.choice(check_for_head_on_collision(data))
     else:
+        """
         goal_node = look_for_food(head_pos, data)
         optimal_node = find_next_step_in_route(head_pos, goal_node, data)
+        """
+        options = get_all_4_points(head_pos)
+        options = check_for_walls(options, data)
+        options = check_own_body(options, data)
+        options = check_for_other_snakes(options, data)
+        if (check_if_next_to_food(options,data) != False):
+            optimal_node = check_if_next_to_food(,data)
+        else optimal_node = flood_fill(data)
     print("optimal node: " + str(optimal_node))
     optimal_direction = get_string_direction(optimal_node, head_pos)
 
@@ -213,19 +222,19 @@ def flood_fill(data):
     #buffet_score = {"left": 0, "right": 0, "up": 0, "down": 0}
     optimal_node = None
     if (node.get("x") - 1 >= 0):
-        left, buffet, examined_nodes = sub_flood_fill({"x": node.get("x") -1, "y": node.get("y")}, board, examined_nodes, 0, 0)
+        left, examined_nodes = sub_flood_fill({"x": node.get("x") -1, "y": node.get("y")}, board, examined_nodes, 0)
         space_counts['left'] = left
        # buffet_score['left'] = buffet
     if (node.get("x") + 1 < w):
-        right, buffet, examined_nodes = sub_flood_fill({"x": node.get("x") + 1, "y": node.get("y")}, board, examined_nodes, 0, 0)
+        right, examined_nodes = sub_flood_fill({"x": node.get("x") + 1, "y": node.get("y")}, board, examined_nodes, 0)
         space_counts['right'] = right
         #buffet_score['right'] = buffet
     if (node.get("y") - 1 >= 0):
-        up, buffet, examined_nodes = sub_flood_fill({"x": node.get("x"), "y": node.get("y") - 1}, board, examined_nodes, 0, 0)
+        up, examined_nodes = sub_flood_fill({"x": node.get("x"), "y": node.get("y") - 1}, board, examined_nodes, 0)
         space_counts['up'] = up
         #buffet_score['up'] = buffet
     if (node.get("y") + 1 < h):
-        down, buffet, examined_nodes = sub_flood_fill({"x": node.get("x"), "y": node.get("y") + 1}, board, examined_nodes, 0, 0)
+        down, examined_nodes = sub_flood_fill({"x": node.get("x"), "y": node.get("y") + 1}, board, examined_nodes, 0)
         space_counts['down'] = down
         #buffet_score['down'] = buffet
 
@@ -247,26 +256,24 @@ def flood_fill(data):
     return optimal_node
 
 
-def sub_flood_fill(node, board, examined_nodes, count, buffet_score):
+def sub_flood_fill(node, board, examined_nodes, count):
     if ( (board[node.get("y")][node.get("x")] < 1) and (node not in examined_nodes)):
         count += 1
         examined_nodes.append(node)
-        if (board[node.get("y")][node.get("x")] == -1):
-            buffet_score += 1
         # left
         if (node.get("x") - 1 >= 0):
-            count, buffet_score, examined_nodes = sub_flood_fill({"x": node.get("x") -1, "y": node.get("y")}, board, examined_nodes, count, buffet_score)
+            count, examined_nodes = sub_flood_fill({"x": node.get("x") -1, "y": node.get("y")}, board, examined_nodes, count)
         # right
         if (node.get("x") + 1 < board.shape[1]):
-            count, buffet_score, examined_nodes = sub_flood_fill({"x": node.get("x") + 1, "y": node.get("y")}, board, examined_nodes, count, buffet_score)
+            count, examined_nodes = sub_flood_fill({"x": node.get("x") + 1, "y": node.get("y")}, board, examined_nodes, count)
         # up
         if (node.get("y") - 1 >= 0):
-            count, buffet_score, examined_nodes = sub_flood_fill({"x": node.get("x"), "y": node.get("y") - 1}, board, examined_nodes, count, buffet_score)
+            count, examined_nodes = sub_flood_fill({"x": node.get("x"), "y": node.get("y") - 1}, board, examined_nodes, count)
         # down
         if (node.get("y") + 1 < board.shape[0]):
-            count, buffet_score, examined_nodes = sub_flood_fill({"x": node.get("x"), "y": node.get("y") + 1}, board, examined_nodes, count, buffet_score)
+            count, examined_nodes = sub_flood_fill({"x": node.get("x"), "y": node.get("y") + 1}, board, examined_nodes, count)
     #print("count: " + str(count) + ", examined_nodes: " + str(examined_nodes))
-    return count, buffet_score, examined_nodes
+    return count, examined_nodes
 
 def get_string_direction(dest, head_pos):
     if (dest.get("x") < head_pos.get("x")):
@@ -349,6 +356,6 @@ if __name__ == '__main__':
     bottle.run(
         application,
         host=os.getenv('IP', '0.0.0.0'),
-        port=os.getenv('PORT', '3440'),
+        port=os.getenv('PORT', '3450'),
         debug=os.getenv('DEBUG', True)
     )
